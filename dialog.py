@@ -1,12 +1,11 @@
 from PyQt5.QtWidgets import (
-    QApplication, QSystemTrayIcon, QMenu, QAction, QDialog, QVBoxLayout, 
-    QLabel, QLineEdit, QPushButton, QDateEdit, QTimeEdit, QMessageBox
+    QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QDateEdit, QTimeEdit, QMessageBox
 )
-from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QDateTime, QDate, QTime
+from utils import round_to_next_hour  # Import the utility function for rounding datetime
 import webbrowser
-import sys
 import urllib.parse
+import configparser
 
 class MeetingSetupDialog(QDialog):
     def __init__(self, parent=None):
@@ -19,12 +18,13 @@ class MeetingSetupDialog(QDialog):
         
         self.subject_input = QLineEdit(self)
         self.subject_input.setPlaceholderText("Enter meeting subject")
-        self.subject_input.setText("Meeting Invite")  # Default value
+        self.subject_input.setText(self.get_config_value('mail_subject'))  # Default value from config
         layout.addWidget(QLabel("Meeting Subject:"))
         layout.addWidget(self.subject_input)
         
         self.email_input = QLineEdit(self)
         self.email_input.setPlaceholderText("Enter email IDs (semicolon separated)")
+        self.email_input.setText(self.get_config_value('mail_to'))  # Default value from config
         layout.addWidget(QLabel("Email IDs:"))
         layout.addWidget(self.email_input)
         
@@ -50,27 +50,25 @@ class MeetingSetupDialog(QDialog):
     def set_default_values(self):
         """Set the default values for date and time."""
         now = QDateTime.currentDateTime()
-        rounded_start_datetime = self.round_to_next_hour(now)
+        rounded_start_datetime = round_to_next_hour(now)
         self.date_picker.setDate(rounded_start_datetime.date())
         self.time_picker.setTime(rounded_start_datetime.time())
 
-    def round_to_next_hour(self, dt):
-        """Round the given datetime to the next hour if minutes or seconds are not zero."""
-        time = dt.time()
-        if time.minute() == 0 and time.second() == 0:
-            return dt
-        # Round up to the next hour
-        return dt.addSecs(3600 - (time.minute() * 60 + time.second()))
+    def get_config_value(self, key):
+        """Read a configuration value from config.ini."""
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        return config.get('settings', key, fallback='')
 
     def setup_meeting(self):
-        subject = self.subject_input.text() or "Meeting Invite"
-        email_ids = self.email_input.text()
+        subject = self.subject_input.text() or self.get_config_value('mail_subject')
+        email_ids = self.email_input.text() or self.get_config_value('mail_to')
         start_date = self.date_picker.date()
         start_time = self.time_picker.time()
         start_datetime = QDateTime(start_date, start_time)
         
         # Round up to the next hour and set as start time
-        rounded_start_datetime = self.round_to_next_hour(start_datetime)
+        rounded_start_datetime = round_to_next_hour(start_datetime)
         self.date_picker.setDate(rounded_start_datetime.date())
         self.time_picker.setTime(rounded_start_datetime.time())
         
@@ -105,41 +103,3 @@ class MeetingSetupDialog(QDialog):
         webbrowser.open(outlook_link)
 
         self.accept()
-
-class TrayApp(QApplication):
-    def __init__(self, sys_argv):
-        super().__init__(sys_argv)
-        
-        # Set the application icon
-        self.setWindowIcon(QIcon("icon.png"))
-
-        # Create the system tray icon
-        self.tray_icon = QSystemTrayIcon(QIcon("icon.png"), self)
-
-        # Create the context menu for the tray icon
-        self.menu = QMenu()
-        
-        # Add actions to the context menu
-        self.exit_action = QAction("Exit", self)
-        self.exit_action.triggered.connect(self.quit)
-        self.menu.addAction(self.exit_action)
-        
-        # Set the context menu and show the tray icon
-        self.tray_icon.setContextMenu(self.menu)
-        self.tray_icon.show()
-        
-        # Connect the left click on the tray icon to show the meeting setup dialog
-        self.tray_icon.activated.connect(self.on_tray_icon_activated)
-
-    def on_tray_icon_activated(self, reason):
-        if reason == QSystemTrayIcon.ActivationReason.Trigger:  # Left-click
-            self.show_meeting_dialog()
-    
-    def show_meeting_dialog(self):
-        dialog = MeetingSetupDialog()
-        dialog.setWindowIcon(QIcon("icon.png"))  # Set the icon for the dialog
-        dialog.exec_()
-
-if __name__ == '__main__':
-    app = TrayApp(sys.argv)
-    sys.exit(app.exec_())
