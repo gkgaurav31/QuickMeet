@@ -1,7 +1,5 @@
-from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QDateEdit, QTimeEdit, QMessageBox
-)
-from PyQt5.QtCore import QDateTime, QDate, QTime
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QDateEdit, QTimeEdit, QMessageBox
+from PyQt5.QtCore import QDateTime
 from utils import round_to_next_hour  # Import the utility function for rounding datetime
 import webbrowser
 import urllib.parse
@@ -12,19 +10,19 @@ class MeetingSetupDialog(QDialog):
         super().__init__(parent)
         
         self.setWindowTitle("QuickMeet")
-        self.setFixedSize(350, 300)  # Increased size to accommodate the subject field
+        self.setFixedSize(350, 300)
         
         layout = QVBoxLayout()
         
         self.subject_input = QLineEdit(self)
         self.subject_input.setPlaceholderText("Enter meeting subject")
-        self.subject_input.setText(self.get_config_value('mail_subject'))  # Default value from config
+        self.subject_input.setText(self.get_config_value('mail_subject'))
         layout.addWidget(QLabel("Meeting Subject:"))
         layout.addWidget(self.subject_input)
         
         self.email_input = QLineEdit(self)
         self.email_input.setPlaceholderText("Enter email IDs (semicolon separated)")
-        self.email_input.setText(self.get_config_value('mail_to'))  # Default value from config
+        self.email_input.setText(self.get_config_value('mail_to'))
         layout.addWidget(QLabel("Email IDs:"))
         layout.addWidget(self.email_input)
         
@@ -48,14 +46,12 @@ class MeetingSetupDialog(QDialog):
         self.set_default_values()
 
     def set_default_values(self):
-        """Set the default values for date and time."""
         now = QDateTime.currentDateTime()
         rounded_start_datetime = round_to_next_hour(now)
         self.date_picker.setDate(rounded_start_datetime.date())
         self.time_picker.setTime(rounded_start_datetime.time())
 
     def get_config_value(self, key):
-        """Read a configuration value from config.ini."""
         config = configparser.ConfigParser()
         config.read('config.ini')
         return config.get('settings', key, fallback='')
@@ -67,13 +63,12 @@ class MeetingSetupDialog(QDialog):
         start_time = self.time_picker.time()
         start_datetime = QDateTime(start_date, start_time)
         
-        # Round up to the next hour and set as start time
         rounded_start_datetime = round_to_next_hour(start_datetime)
         self.date_picker.setDate(rounded_start_datetime.date())
         self.time_picker.setTime(rounded_start_datetime.time())
         
         start_time_python = rounded_start_datetime.toString('yyyy-MM-ddTHH:mm:ss')
-        end_datetime = rounded_start_datetime.addSecs(3600)  # End time is 1 hour later
+        end_datetime = rounded_start_datetime.addSecs(3600)
         end_time_python = end_datetime.toString('yyyy-MM-ddTHH:mm:ss')
 
         if not email_ids:
@@ -82,24 +77,20 @@ class MeetingSetupDialog(QDialog):
 
         location = 'Meeting Location'
         body = (
-            "<p>Hello,</p>"
-            "<p>I hope this message finds you well.</p>"
-            "<p>I have scheduled a Teams meeting for us to further discuss the relevant topics. "
-            "Please find the meeting details below and let me know if you need any adjustments.</p>"
-            "<p>Looking forward to our discussion!</p>"
+            "Hello,\n\n"
+            "I hope this message finds you well.\n\n"
+            "I have scheduled a Teams meeting for us to further discuss the relevant topics. "
+            "Please find the meeting details below and let me know if you need any adjustments.\n\n"
+            "Looking forward to our discussion!\n"
         )
         
-        # Encode the body for URL
         body_encoded = urllib.parse.quote(body)
         
-        # Create the deep link for Outlook web
         outlook_link = (
             f"https://outlook.office.com/calendar/0/deeplink/compose?"
             f"subject={urllib.parse.quote(subject)}&startdt={start_time_python}&enddt={end_time_python}&"
             f"location={urllib.parse.quote(location)}&body={body_encoded}&to={urllib.parse.quote(email_ids.replace(';', ','))}"
         )
         
-        # Open the link in the default web browser (Outlook)
         webbrowser.open(outlook_link)
-
-        self.accept()
+        self.accept()  # Only close the dialog, keep the app running
