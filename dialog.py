@@ -1,50 +1,72 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QDateEdit, QTimeEdit, QMessageBox
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QDateEdit, QTimeEdit, QMessageBox, QDesktopWidget
 from PyQt5.QtCore import QDateTime
-from utils import round_to_next_hour  # Import the utility function for rounding datetime
+from PyQt5.QtGui import QFont
 import webbrowser
 import urllib.parse
 import configparser
+from utils import round_to_next_hour  # Ensure this import is present
 
 class MeetingSetupDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         
         self.setWindowTitle("QuickMeet")
-        self.setFixedSize(350, 300)
+        self.setFixedSize(450, 350)  # Increased size for better layout
         
+        # Apply font settings
+        self.set_font()
+        
+        # Create layout
         layout = QVBoxLayout()
         
+        # Add widgets with improved sizes
         self.subject_input = QLineEdit(self)
         self.subject_input.setPlaceholderText("Enter meeting subject")
         self.subject_input.setText(self.get_config_value('mail_subject'))
+        self.subject_input.setMinimumHeight(40)  # Increased height
+        self.subject_input.setFixedWidth(400)  # Adjusted width
         layout.addWidget(QLabel("Meeting Subject:"))
         layout.addWidget(self.subject_input)
         
         self.email_input = QLineEdit(self)
         self.email_input.setPlaceholderText("Enter email IDs (semicolon separated)")
         self.email_input.setText(self.get_config_value('mail_to'))
+        self.email_input.setMinimumHeight(40)  # Increased height
+        self.email_input.setFixedWidth(400)  # Adjusted width
         layout.addWidget(QLabel("Email IDs:"))
         layout.addWidget(self.email_input)
         
         self.date_picker = QDateEdit(self)
         self.date_picker.setCalendarPopup(True)
         self.date_picker.setDisplayFormat('yyyy-MM-dd')
+        self.date_picker.setMinimumHeight(40)  # Increased height
+        self.date_picker.setFixedWidth(400)  # Adjusted width
         layout.addWidget(QLabel("Start Date:"))
         layout.addWidget(self.date_picker)
         
         self.time_picker = QTimeEdit(self)
         self.time_picker.setDisplayFormat('HH:mm')
+        self.time_picker.setMinimumHeight(40)  # Increased height
+        self.time_picker.setFixedWidth(400)  # Adjusted width
         layout.addWidget(QLabel("Start Time:"))
         layout.addWidget(self.time_picker)
         
         self.ok_button = QPushButton("OK", self)
+        self.ok_button.setMinimumHeight(40)  # Increased height
+        self.ok_button.setFixedWidth(400)  # Adjusted width
         self.ok_button.clicked.connect(self.setup_meeting)
         layout.addWidget(self.ok_button)
         
         self.setLayout(layout)
         
         self.set_default_values()
+        self.center()
 
+    def set_font(self):
+        font = QFont()
+        font.setPointSize(12)  # Increased font size for better readability
+        self.setFont(font)
+        
     def set_default_values(self):
         now = QDateTime.currentDateTime()
         rounded_start_datetime = round_to_next_hour(now)
@@ -94,3 +116,10 @@ class MeetingSetupDialog(QDialog):
         
         webbrowser.open(outlook_link)
         self.accept()  # Only close the dialog, keep the app running
+
+    def center(self):
+        """Center the dialog on the screen."""
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())

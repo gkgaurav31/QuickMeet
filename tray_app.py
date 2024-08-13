@@ -1,5 +1,6 @@
-from PyQt5.QtWidgets import QSystemTrayIcon, QMenu, QAction, QApplication
+from PyQt5.QtWidgets import QSystemTrayIcon, QMenu, QAction
 from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import Qt
 from dialog import MeetingSetupDialog
 
 class TrayApp:
@@ -27,7 +28,8 @@ class TrayApp:
             self.show_dialog()
     
     def show_dialog(self):
-        dialog = MeetingSetupDialog()
+        # Create and show the dialog
+        dialog = MeetingSetupDialog(parent=self.app.activeWindow())  # Pass the parent as the active window
         dialog.exec_()  # Show the dialog and wait for user input
 
     def exit_app(self):
